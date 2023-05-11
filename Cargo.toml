@@ -8,6 +8,9 @@ publish = false
 
 [dependencies]
 shuttle-runtime = "0.15.0"
-rocket = "0.5.0-rc.3"
+rocket = { version = "=0.5.0-rc.3", features = ["json"] }
 shuttle-rocket = "0.15.0"
-tokio = "1.28.0"
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.28.0", features = ["full"] }
+chrono = "0.4.19"
+csv = "1.1"
