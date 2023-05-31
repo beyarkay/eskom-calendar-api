@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate rocket;
-use rocket::serde::json::Json;
+use std::collections::HashSet;
 
+use rocket::serde::json::Json;
 mod structs;
+use regex::Regex;
 use shuttle_runtime::CustomError;
 use sqlx::{Executor, PgPool};
 use structs::{
@@ -38,7 +40,10 @@ async fn schedules(area_name: String) -> Result<Json<RecurringSchedule>, String>
         .map_err(|_err| format!("Failed to get CSV file defining schedules for {area_name}"))?;
 
     if !response.status().is_success() {
-        return Err(format!("Failed to get CSV file from GitHub: {:?}", response));
+        return Err(format!(
+            "Failed to get CSV file from GitHub: {:?}",
+            response
+        ));
     }
 
     let text_data = response.text().await.map_err(|_err| {
@@ -83,8 +88,7 @@ async fn schedules(area_name: String) -> Result<Json<RecurringSchedule>, String>
     }))
 }
 
-#[get("/outages/<area_name>")]
-async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
+async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
     let url =
         "https://github.com/beyarkay/eskom-calendar/releases/download/latest/machine_friendly.csv";
     let text_data = reqwest::get(url)
@@ -95,9 +99,17 @@ async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
         .map_err(|_err| "Failed to get text of machine_friendly.csv")?;
 
     let mut reader = csv::Reader::from_reader(text_data.as_bytes());
-    let outages: Vec<PowerOutage> = reader
+    Ok(reader
         .deserialize::<PowerOutage>()
         .map(|result| result.unwrap())
+        .collect())
+}
+
+#[get("/outages/<area_name>")]
+async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
+    let outages: Vec<PowerOutage> = get_machine_friendly()
+        .await?
+        .into_iter()
         .filter(|outage| outage.area_name == area_name)
         .collect();
 
@@ -106,6 +118,29 @@ async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
     }
 
     Ok(Json(outages))
+}
+
+#[get("/list_areas")]
+async fn list_all_areas() -> Result<Json<Vec<String>>, String> {
+    list_areas(".*".to_string()).await
+}
+
+#[get("/list_areas/<regex>")]
+async fn list_areas(regex: String) -> Result<Json<Vec<String>>, String> {
+    let machine_friendly = get_machine_friendly().await?;
+    let re = Regex::new(&regex).map_err(|e| format!("Error parsing '{regex}' as regex: {e:?}"))?;
+
+    let mut uniq_areas = machine_friendly
+        .into_iter()
+        .filter(|outage| re.is_match(&outage.area_name))
+        .map(|outage| outage.area_name)
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    uniq_areas.sort();
+
+    Ok(Json(uniq_areas))
 }
 
 #[get("/")]
@@ -166,7 +201,10 @@ async fn rocket(#[shuttle_aws_rds::Postgres()] pool: PgPool) -> shuttle_rocket::
     let state = MyState { pool };
     eprintln!("Building rocket");
     let rocket = rocket::build()
-        .mount("/v1.0", routes![outages, schedules])
+        .mount(
+            "/v0.0.1",
+            routes![outages, schedules, list_areas, list_all_areas],
+        )
         // .mount("/esp/2.0", routes![esp_index, esp_status])
         .manage(state);
 

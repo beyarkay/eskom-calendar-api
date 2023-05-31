@@ -17,3 +17,4 @@ shuttle-shared-db = { version = "0.17.0", features = ["postgres"] }
 shuttle-aws-rds = { version = "0.17.0", features = ["postgres"] }
 sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "postgres"] }
 tokio = { version = "1.28.0", features = ["full"] }
+regex = "1.8.3"
