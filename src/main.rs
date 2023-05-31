@@ -2,7 +2,12 @@
 extern crate rocket;
 use std::collections::HashSet;
 
-use rocket::serde::json::Json;
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::Header,
+    serde::json::Json,
+    Request, Response,
+};
 mod structs;
 use regex::Regex;
 use shuttle_runtime::CustomError;
@@ -191,16 +196,46 @@ struct MyState {
     pool: PgPool,
 }
 
+/// Catches all OPTION requests in order to get the CORS related Fairing triggered.
+/// https://stackoverflow.com/a/72702246/14555505
+#[options("/<_..>")]
+fn all_options() {}
+
+/// An empty struct to trigger CORS
+/// https://stackoverflow.com/a/72702246/14555505
+pub struct Cors;
+
+/// Implement Fairing so that CORS issues don't come up
+/// https://stackoverflow.com/a/72702246/14555505
+#[rocket::async_trait]
+impl Fairing for Cors {
+    fn info(&self) -> Info {
+        Info {
+            name: "Cross-Origin-Resource-Sharing Fairing",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, PATCH, PUT, DELETE, HEAD, OPTIONS, GET",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
+}
+
 #[shuttle_runtime::main]
 async fn rocket(#[shuttle_aws_rds::Postgres()] pool: PgPool) -> shuttle_rocket::ShuttleRocket {
-    eprintln!("Including schema");
     pool.execute(include_str!("../schema.sql"))
         .await
         .map_err(CustomError::new)?;
 
     let state = MyState { pool };
-    eprintln!("Building rocket");
     let rocket = rocket::build()
+        .attach(Cors)
         .mount(
             "/v0.0.1",
             routes![outages, schedules, list_areas, list_all_areas],
