@@ -1,12 +1,29 @@
+use crate::structs::new::PowerOutage;
 use crate::structs::new::{
     RawMonthlyShedding, RawPeriodicShedding, RawWeeklyShedding, RecurringOutage, RecurringSchedule,
     ScheduleId,
 };
-use crate::{get_machine_friendly, structs::schedule::PowerOutage};
 use rocket::serde::json::Json;
 use std::collections::HashSet;
 
 use regex::Regex;
+
+async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
+    let url =
+        "https://github.com/beyarkay/eskom-calendar/releases/download/latest/machine_friendly.csv";
+    let text_data = reqwest::get(url)
+        .await
+        .map_err(|_err| "Failed to get machine_friendly.csv that defines the outages")?
+        .text()
+        .await
+        .map_err(|_err| "Failed to get text of machine_friendly.csv")?;
+
+    let mut reader = csv::Reader::from_reader(text_data.as_bytes());
+    Ok(reader
+        .deserialize::<PowerOutage>()
+        .map(|result| result.unwrap())
+        .collect())
+}
 
 pub mod latest {
     use super::*;
