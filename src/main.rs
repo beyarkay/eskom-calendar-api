@@ -4,7 +4,7 @@ extern crate rocket;
 use rocket::{
     fairing::{Fairing, Info, Kind},
     http::Header,
-    routes, Request, Response,
+    Request, Response,
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -123,8 +123,6 @@ async fn rocket() -> shuttle_rocket::ShuttleRocket {
             latest::schedules,
             latest::list_all_areas,
             latest::list_areas,
-            v0_0_1::outages,
-            v0_0_1::fuzzy_search,
         ),
         components(schemas(
             structs::Area,
@@ -152,7 +150,7 @@ async fn rocket() -> shuttle_rocket::ShuttleRocket {
         .mount("/v0.0.1", v0_0_1::routes())
         .mount(
             "/",
-            SwaggerUi::new("/swagger-ui/<_..>").url("/api-docs/openapi.json", ApiDoc::openapi()),
+            SwaggerUi::new("/<_..>").url("/api-docs/openapi.json", ApiDoc::openapi()),
         );
 
     Ok(rocket.into())

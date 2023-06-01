@@ -21,12 +21,16 @@ pub struct RecurringSchedule {
 
     /// The source where this schedule came from. Often this information is distributed by the
     /// municipality of the area, or Eskom itself. This might come from multiple places
-    #[schema(example = "[\"https://www.eskom.co.za/distribution/wp-content/uploads/2022/09/WesternCape_LS.xlsx\"]")]
+    #[schema(
+        example = "[\"https://www.eskom.co.za/distribution/wp-content/uploads/2022/09/WesternCape_LS.xlsx\"]"
+    )]
     pub source: Vec<String>,
 
     /// Often the `source` will be a PDF or Excel spreadsheet, without any context or other
     /// information. So `info` has any relevant URLs that describe the `source`.
-    #[schema(example = "[\"https://www.eskom.co.za/distribution/customer-service/outages/downloadable-loadshedding-spreadsheets-for-eskom-customers/\"]")]
+    #[schema(
+        example = "[\"https://www.eskom.co.za/distribution/customer-service/outages/downloadable-loadshedding-spreadsheets-for-eskom-customers/\"]"
+    )]
     pub info: Vec<String>,
 
     /// The last time this schedule was updated. In case a new schedule has recently been released,
@@ -599,7 +603,7 @@ pub struct SearchResult<T> {
     #[schema(example = 100)]
     pub score: i64,
     /// The thing that's been found
-    #[schema(example = "my-needle")]
+    #[schema(value_type=Area)]
     pub result: T,
 }
 
