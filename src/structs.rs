@@ -1,3 +1,5 @@
+use std::{cmp::Ordering, fmt::Debug};
+
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime};
 use rocket::serde::{Deserialize, Serialize};
 
@@ -38,18 +40,17 @@ pub enum Recurrence {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "rocket::serde")]
-pub struct AreaId(i64);
+pub struct AreaId(pub i64);
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct Area {
-    id: AreaId,
-    schedule: ScheduleId,
-    name: String,
-    aliases: Vec<String>,
-    province: Province,
-    municipality: Option<Municipality>,
-    coords: Vec<ContiguousRegion>,
+    pub name: String,
+    pub id: AreaId,
+    pub schedule: ScheduleId,
+    pub aliases: Vec<String>,
+    pub province: Option<Province>,
+    pub municipality: Option<Municipality>,
 }
 
 /// A region on the surface of Earth that is fully connected. So you can't have two "islands",
@@ -494,5 +495,33 @@ pub struct PowerOutage {
     pub source: String,
 }
 
+// TODO require that result is Ord
+#[derive(Deserialize, Serialize)]
+#[serde(crate = "rocket::serde")]
+#[derive(Clone, Debug)]
+pub struct SearchResult<T> {
+    /// How close a match the thing is to the search query. Higher is better.
+    pub score: i64,
+    /// The thing that's been found
+    pub result: T,
+}
 
+impl<T> Ord for SearchResult<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.score.cmp(&other.score)
+    }
+}
 
+impl<T> PartialOrd for SearchResult<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.score.cmp(&other.score))
+    }
+}
+
+impl<T> PartialEq for SearchResult<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.score == other.score
+    }
+}
+
+impl<T> Eq for SearchResult<T> {}

@@ -49,19 +49,21 @@ async fn rocket() -> shuttle_rocket::ShuttleRocket {
         .mount(
             "/",
             routes![
+                latest::fuzzy_search,
+                latest::list_all_areas,
+                latest::list_areas,
                 latest::outages,
                 latest::schedules,
-                latest::list_areas,
-                latest::list_all_areas
             ],
         )
         .mount(
             "/v0.0.1",
             routes![
+                v0_0_1::fuzzy_search,
+                v0_0_1::list_all_areas,
+                v0_0_1::list_areas,
                 v0_0_1::outages,
                 v0_0_1::schedules,
-                v0_0_1::list_areas,
-                v0_0_1::list_all_areas
             ],
         );
 

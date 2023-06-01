@@ -1,12 +1,13 @@
-use crate::structs::new::PowerOutage;
-use crate::structs::new::{
-    RawMonthlyShedding, RawPeriodicShedding, RawWeeklyShedding, RecurringOutage, RecurringSchedule,
-    ScheduleId,
+use crate::structs::{
+    Area, AreaId, PowerOutage, RawMonthlyShedding, RawPeriodicShedding, RawWeeklyShedding,
+    RecurringOutage, RecurringSchedule, ScheduleId, SearchResult,
 };
-use rocket::serde::json::Json;
-use std::collections::HashSet;
-
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
+use rocket::serde::json::Json;
+use shuttle_runtime::tracing;
+use std::collections::HashSet;
 
 async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
     let url =
@@ -27,6 +28,12 @@ async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
 
 pub mod latest {
     use super::*;
+
+    #[get("/fuzzy_search/<query>")]
+    pub async fn fuzzy_search(query: String) -> Result<Json<Vec<SearchResult<Area>>>, String> {
+        super::v0_0_1::fuzzy_search(query).await
+    }
+
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
         super::v0_0_1::outages(area_name).await
@@ -50,6 +57,55 @@ pub mod latest {
 pub mod v0_0_1 {
 
     use super::*;
+
+    #[get("/fuzzy_search/<query>")]
+    pub async fn fuzzy_search(query: String) -> Result<Json<Vec<SearchResult<Area>>>, String> {
+        tracing::info!("Fuzzy searching on {query}");
+        let matcher = SkimMatcherV2::default();
+
+        // Normalise a query
+        let preprocess = |q: &str| {
+            // Replace all non a-z0-9_ chars with a space to aid in fuzzy matching
+            let re = Regex::new(r"[^a-zA-Z0-9_]").unwrap();
+            re.replace_all(q, " ").to_ascii_lowercase()
+        };
+
+        // Normalise the query
+        let query = preprocess(&query);
+        tracing::info!("Fetching machine friendly");
+        let machine_friendly = get_machine_friendly().await?;
+
+        tracing::info!("Fuzzy searching for matching areas");
+        // Find all matching areas
+        let mut matching_areas = machine_friendly
+            .into_iter()
+            .map(|outage| outage.area_name)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .filter_map(|area_name| {
+                matcher
+                    .fuzzy_match(&preprocess(&area_name), &preprocess(&query))
+                    .map(|score| SearchResult {
+                        score,
+                        result: Area {
+                            name: area_name,
+                            id: AreaId(0),
+                            schedule: ScheduleId(0),
+                            aliases: vec![],
+                            province: None,
+                            municipality: None,
+                        },
+                    })
+            })
+            .collect::<Vec<_>>();
+
+        tracing::info!("Sorting matching areas");
+        matching_areas.sort();
+        matching_areas.reverse();
+
+        tracing::info!("Returning result");
+        Ok(Json(matching_areas))
+    }
 
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
