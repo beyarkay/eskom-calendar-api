@@ -3,12 +3,12 @@
     <img src="https://github.com/beyarkay/eskom-calendar/blob/main/imgs/header.png" alt="eskom-calendar-api: loadshedding in your shell">
   </h1>
 
-  <a href="https://github.com/beyarkay/eskom-calendar">
-    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/beyarkay/eskom-calendar?style=social">
+  <a href="https://github.com/beyarkay/eskom-calendar-api">
+    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/beyarkay/eskom-calendar-api?style=social">
   </a>
 
   <a href="https://twitter.com/intent/tweet?text=Hey%20@beyarkay%20I%20love%20eskom-calendar!">
-    <img alt="Twitter share" src="https://img.shields.io/twitter/follow/beyarkay?label=Say%20thanks%20on%20Twitter%21&style=social">
+    <img alt="Twitter share" src="https://img.shields.io/twitter/follow/beyarkay?label=Say%20hi%20on%20Twitter%21&style=social">
   </a>
   <br>
   <a href="https://ko-fi.com/beyarkay">
@@ -20,13 +20,44 @@
   </a>
 
   <p>
-    This is the backend for the eskom-calendar API, hosted by <a href="https://www.shuttle.rs/">shuttle.rs🚀</a>
+    This is the backend for <a href="https://github.com/beyarkay/eskom-calendar">eskom-calendar</a>'s API, hosted by <a href="https://www.shuttle.rs/">shuttle.rs🚀</a>.
   </p>
-  <a href="https://github.com/beyarkay/eskom-calendar">Go to eskom-calendar</a> •
 </div>
 
 (This is still a WIP, but should be usable for non-critical purposes)
 
+## How to use it
+
+Proper docs will be coming in the near future, as the API is still on version `v0.0.1`, but 
+the endpoint is `https://eskom-calendar-api.shuttleapp.rs/v0.0.1/`. Note that you can omit the
+version to opt-in to the latest version of the endpoint. So `https://eskom-calendar-api.shuttleapp.rs/list_areas`
+will list all the areas according to the latest version of the API. All versions are maintained, so if
+your app is working fine on `v0.0.1`, you don't have to worry about it being deprecated/removed.
+
+The basic layout is as follows (openAPI spec is being worked on):
+
+### List all areas
+```
+curl https://eskom-calendar-api.shuttleapp.rs/v0.0.1/list_areas
+```
+
+### List areas matching regex
+```
+curl "https://eskom-calendar-api.shuttleapp.rs/v0.0.1/list_areas/(western|eastern)-cape"
+```
+
+### Get times when the power will be out for an area
+```
+curl https://eskom-calendar-api.shuttleapp.rs/v0.0.1/outages/western-cape-worscester
+```
+
+### Get the full schedule for an area
+
+(This one's got all the correct data, but some of the niceties are still just placeholders)
+
+```
+curl https://eskom-calendar-api.shuttleapp.rs/v0.0.1/schedules/western-cape-worscester
+```
 
 ## Attribution and using the data (commercially or otherwise)
 
@@ -78,30 +109,9 @@ or redirection. Furthermore, the links must not be
 
 ## Contributors
 
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
-
 [Boyd Kane](https://github.com/beyarkay) is the creator and maintainer. Reach out
 on [twitter](https://twitter.com/beyarkay) if you want to chat in private, otherwise
-[open an issue](https://github.com/beyarkay/eskom-calendar/issues/new)!
-
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/beyarkay"><img src="https://avatars.githubusercontent.com/u/33420535?v=4?s=100" width="100px;" alt="Boyd Kane"/><br /><sub><b>Boyd Kane</b></sub></a><br /><a href="https://github.com/beyarkay/eskom-calendar/commits?author=beyarkay" title="Tests">⚠️</a> <a href="https://github.com/beyarkay/eskom-calendar/commits?author=beyarkay" title="Code">💻</a> <a href="https://github.com/beyarkay/eskom-calendar/issues?q=author%3Abeyarkay" title="Bug reports">🐛</a> <a href="https://github.com/beyarkay/eskom-calendar/commits?author=beyarkay" title="Documentation">📖</a> <a href="#maintenance-beyarkay" title="Maintenance">🚧</a></td>
-    </tr>
-  </tbody>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+[open an issue](https://github.com/beyarkay/eskom-calendar-api/issues/new)!
 
 ## Support
 
