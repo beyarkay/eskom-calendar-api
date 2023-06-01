@@ -29,25 +29,82 @@ async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
 pub mod latest {
     use super::*;
 
+    pub fn routes() -> Vec<rocket::Route> {
+        routes![fuzzy_search, list_all_areas, list_areas, outages, schedules,]
+    }
+
+    /// Search for an area using approximate (or "fuzzy") matching.
+    ///
+    /// For example, `west dorp` will match all areas that have `west` and `dorp` in their names in
+    /// that order. This is useful if you don't know what eskom-calendar calls the area you are in.
+    ///
+    /// The returned `score` describes how good a match each item is. The higher the score, the
+    /// better the match. Click 'Try it out' on the right to have a go!
+    #[utoipa::path(
+        params(("query" = String, example="west dorp", description = "Space separated search queryies (order matters)")),
+        responses(
+            (status = 200, description = "Success. You'll get a list of search results", body = [SearchResult])
+        ),
+    )]
     #[get("/fuzzy_search/<query>")]
     pub async fn fuzzy_search(query: String) -> Result<Json<Vec<SearchResult<Area>>>, String> {
         super::v0_0_1::fuzzy_search(query).await
     }
 
+    /// Get all the known times when power will be off for a certain area.
+    ///
+    /// The `area_name` must be one of the ones listed in the endpoint `list_areas`. Click 'Try it
+    /// out' on the right to have a go!
+    #[utoipa::path(
+        params(("area_name" = String, example="western-cape-stellenbosch", description = "Area to get the outages for")),
+        responses(
+            (status = 200, description = "200 will return a list of PowerOutage objects.", body = [PowerOutage])
+        ),
+    )]
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
         super::v0_0_1::outages(area_name).await
     }
 
+    /// Get the loadshedding schedule for a certain area.
+    ///
+    /// Note that this does *not* describe when the power will be off (use `/outages/{area_name}`
+    /// instead). The `area_name` must be one of the ones listed in the endpoint `list_areas`.
+    /// Click 'Try it out' on the right to have a go!
+    #[utoipa::path(
+        params(("area_name" = String, example="north-west-zeerust", description = "The name of the area you want the schedule for")),
+        responses(
+            (status = 200, description = "Success. You'll get a Recurring Schedule", body = RecurringSchedule)
+        ),
+    )]
     #[get("/schedules/<area_name>")]
     pub async fn schedules(area_name: String) -> Result<Json<RecurringSchedule>, String> {
         super::v0_0_1::schedules(area_name).await
     }
 
+    /// Get a list of all areas known to eskom-calendar.
+    ///
+    /// Each area name is unique, and describes a different `Area` that can get loadshedding. Click
+    /// 'Try it out' on the right to have a go!
+    #[utoipa::path(responses(
+        (status = 200, description = "Success. A list of every area known to eskom-calendar.", body = [String])
+    ))]
     #[get("/list_areas")]
     pub async fn list_all_areas() -> Result<Json<Vec<String>>, String> {
         super::v0_0_1::list_all_areas().await
     }
+
+    /// Search for areas by a rust-regex.
+    ///
+    /// Have a look [here](https://regex101.com/r/XspP8R/1) to try out your query on a long list of
+    /// areas. Don't forget to [URI escape](https://en.wikipedia.org/wiki/URL_encoding) your query
+    /// before you try to send it. Click 'Try it out' on the right to have a go!
+    #[utoipa::path(
+        params(("regex" = String, example="\\w+(ville|water)", description = "Valid Rust regex describing the place you're looking for.")),
+        responses(
+            (status = 200, description = "Success. You'll get a list of areas matching your regex", body = [String])
+        ),
+    )]
     #[get("/list_areas/<regex>")]
     pub async fn list_areas(regex: String) -> Result<Json<Vec<String>>, String> {
         super::v0_0_1::list_areas(regex).await
@@ -58,6 +115,11 @@ pub mod v0_0_1 {
 
     use super::*;
 
+    pub fn routes() -> Vec<rocket::Route> {
+        routes![fuzzy_search, list_all_areas, list_areas, outages, schedules,]
+    }
+
+    #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/fuzzy_search/<query>")]
     pub async fn fuzzy_search(query: String) -> Result<Json<Vec<SearchResult<Area>>>, String> {
         tracing::info!("Fuzzy searching on {query}");
@@ -107,6 +169,7 @@ pub mod v0_0_1 {
         Ok(Json(matching_areas))
     }
 
+    #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
         let outages: Vec<PowerOutage> = get_machine_friendly()
@@ -122,6 +185,7 @@ pub mod v0_0_1 {
         Ok(Json(outages))
     }
 
+    #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/schedules/<area_name>")]
     pub async fn schedules(area_name: String) -> Result<Json<RecurringSchedule>, String> {
         let url = format!( "https://raw.githubusercontent.com/beyarkay/eskom-calendar/main/generated/{area_name}.csv");
@@ -178,11 +242,13 @@ pub mod v0_0_1 {
         }))
     }
 
+    #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/list_areas")]
     pub async fn list_all_areas() -> Result<Json<Vec<String>>, String> {
         list_areas(".*".to_string()).await
     }
 
+    #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/list_areas/<regex>")]
     pub async fn list_areas(regex: String) -> Result<Json<Vec<String>>, String> {
         let machine_friendly = get_machine_friendly().await?;

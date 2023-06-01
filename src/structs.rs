@@ -2,75 +2,146 @@ use std::{cmp::Ordering, fmt::Debug};
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime};
 use rocket::serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug)]
+/// The unique ID of a schedule
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct ScheduleId(pub i64);
 
-#[derive(Serialize, Deserialize, Debug)]
+/// A loadshedding schedule that repeats over some period.
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct RecurringSchedule {
     pub id: ScheduleId,
+
+    /// All the recurring outages for this schedule.
+    #[schema(example = "[RecurringOutage]")]
     pub outages: Vec<RecurringOutage>,
+
+    /// The source where this schedule came from. Often this information is distributed by the
+    /// municipality of the area, or Eskom itself. This might come from multiple places
+    #[schema(example = "[\"https://www.eskom.co.za/distribution/wp-content/uploads/2022/09/WesternCape_LS.xlsx\"]")]
     pub source: Vec<String>,
+
+    /// Often the `source` will be a PDF or Excel spreadsheet, without any context or other
+    /// information. So `info` has any relevant URLs that describe the `source`.
+    #[schema(example = "[\"https://www.eskom.co.za/distribution/customer-service/outages/downloadable-loadshedding-spreadsheets-for-eskom-customers/\"]")]
     pub info: Vec<String>,
+
+    /// The last time this schedule was updated. In case a new schedule has recently been released,
+    /// this will let you know if eskom-calendar has been updated with these schedules.
+    #[schema(example = "2000-01-01T00:00:00+02:00")]
     pub last_updated: Option<NaiveDateTime>,
+
+    /// The start date which this schedule is valid from. Sometimes a new schedule will be
+    /// announced in advanced but will only come into action on a certain date.
+    #[schema(example = "2000-01-01T00:00:00+02:00")]
     pub valid_from: Option<NaiveDateTime>,
+
+    /// The final date which this schedule is valid until. Sometimes a new schedule will be
+    /// deprecated in favour of some other new schedule.
+    #[schema(example = "2099-01-01T00:00:00+02:00")]
     pub valid_until: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+/// A recurring time during which the power *could* be out.
+///
+/// Note that this is *different* to `PowerOutage`. A recurring outage does not describe a time
+/// when your power will be out, but rather describes a time when your power *could* be out,
+/// depending on what stage of loadshedding is announced.
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct RecurringOutage {
+    /// The time at which this outage starts
+    #[schema(example = "22:00")]
     pub start_time: NaiveTime,
+
+    /// The time at which this outage finishs.
+    ///
+    /// Note that this is spelt `finsh`, without the second `i`, so that it lines up with `start`.
+    /// It *is* possible for `finsh_time` < `start_time` (for example `00:30` < `22:00`), and this
+    /// happens when loadshedding goes over midnight.
+    #[schema(example = "00:30")]
     pub finsh_time: NaiveTime,
+
+    /// The loadshedding stage.
+    #[schema(example = 3)]
     pub stage: u8,
+
+    /// How often this outage is repeated. Most common are Monthly and Weekly.
+    #[schema(example = "Monthly")]
     pub recurrence: Recurrence,
+
+    /// The day of this recurrence, starting from 1.
+    ///
+    /// Since a `RecurringOutage` could repeat every month/week/other time period, this describes
+    /// what day of the month/week/other time period this outage starts on.
+    ///
+    /// - 1 => 1st of the month, Monday
+    /// - 2 => 2nd of the month, Tuesday
+    /// - 3 => 3rd of the month, Wednesday
+    /// - etc
+    #[schema(example = 4)]
     pub day1_of_recurrence: u8,
 }
 
-#[derive(Serialize, Deserialize)]
+/// An enum to describe either a Weekly, Monthly, or (most general) Periodic recurrance.
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, ToSchema)]
 #[serde(crate = "rocket::serde")]
-#[derive(Debug, Clone, PartialEq)]
 pub enum Recurrence {
+    /// Repeat every week
     Weekly,
+    /// Repeat every month
     Monthly,
+    /// Repeat with a period of `period_days` days, starting from the date `offset`
     Periodic { offset: NaiveDate, period_days: u8 },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+/// The ID of an `Area`
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct AreaId(pub i64);
 
-#[derive(Serialize, Deserialize, Debug)]
+/// A geographical area which has a loadshedding schedule. Note that multiple Areas might share the
+/// same schedule.
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct Area {
+    /// The standardised name of this area
     pub name: String,
+    /// The ID of this area
     pub id: AreaId,
+    /// The ID of the schedule that this area follows
     pub schedule: ScheduleId,
+    /// Different aliases for this area. These might be common misspellings, the area's name in
+    /// different languages, or local nicknames for the area
     pub aliases: Vec<String>,
+    /// The province of this area (not always known, so it might be None)
     pub province: Option<Province>,
+    /// The municipality of this area (not always known, so it might be None)
     pub municipality: Option<Municipality>,
 }
 
 /// A region on the surface of Earth that is fully connected. So you can't have two "islands",
 /// every point in a ContiguousRegion must be reachable from every other point in the same
 /// ContiguousRegion.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct ContiguousRegion {
     boundary: Vec<Coords>,
 }
 
 /// A point on the earth
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub struct Coords {
     lat: f64,
     lng: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+/// One of the nine provinces of South Africa
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub enum Province {
     EasternCape,
@@ -84,7 +155,12 @@ pub enum Province {
     WesternCape,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+/// Municipalities in South Africa can either be Metropolitan Municipalities, or they can be
+/// District Municipalities (in which case they are subdivided into Local Municipalities).
+///
+/// The metro municipalities are generally high density cities and the surrounding areas, and the
+/// district municipalities are everywhere else.
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 pub enum Municipality {
     Metro(MetroMunic),
@@ -95,8 +171,9 @@ pub enum Municipality {
 }
 
 /// All the Metropolitan Municipalities in South Africa
+///
 /// https://en.wikipedia.org/wiki/List_of_municipalities_in_South_Africa#Metropolitan_municipalities
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 #[allow(non_camel_case_types)]
 pub enum MetroMunic {
@@ -105,14 +182,15 @@ pub enum MetroMunic {
     CityOfEkurhuleni,
     CityOfJohannesburg,
     CityOfTshwane,
-    eThekwini,
     Mangaung,
     NelsonMandelaBay,
+    eThekwini,
 }
 
 /// All the district municipalities in South Africa
+///
 /// https://en.wikipedia.org/wiki/List_of_municipalities_in_South_Africa#Local_municipalities
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 #[allow(non_camel_case_types)]
 pub enum DistrictMunic {
@@ -163,8 +241,9 @@ pub enum DistrictMunic {
 }
 
 /// All Local Municipalities of South Africa.
+///
 /// https://en.wikipedia.org/wiki/List_of_municipalities_in_South_Africa#Local_municipalities
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
 #[allow(non_camel_case_types)]
 pub enum LocalMunic {
@@ -375,7 +454,7 @@ pub enum LocalMunic {
     uPhongolo,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct RawPeriodicShedding {
     /// The time when LoadShedding *should* start.
@@ -419,7 +498,7 @@ impl From<RawPeriodicShedding> for RecurringOutage {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct RawWeeklyShedding {
     /// The time when LoadShedding *should* start.
@@ -448,9 +527,7 @@ impl From<RawWeeklyShedding> for RecurringOutage {
     }
 }
 
-/// A loadshedding event that repeats on the same day every month, not yet parsed. See
-/// MonthlyShedding.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct RawMonthlyShedding {
     /// The time when LoadShedding *should* start.
@@ -480,29 +557,49 @@ impl From<RawMonthlyShedding> for RecurringOutage {
     }
 }
 
-/// Represents a duration of time for which the power will be out for a particular area.
+/// A duration in time when the power will be out for a certain area.
 ///
-/// Requires specifying where the information came from (in `source`) as well as the stage of
-/// loadshedding.
-#[derive(Deserialize, Serialize)]
+/// Note that this is different to `RecurringOutage`. A `PowerOutage` describes when your power
+/// will actually be turned off, but a `RecurringOutage` describes the Monthly/Weekly schedules
+/// that say "In this area, at this stage, on this date, your power will be off from this time to
+/// that time".
+#[derive(Deserialize, Serialize, PartialEq, Eq, Clone, ToSchema)]
 #[serde(crate = "rocket::serde")]
-#[derive(PartialEq, Eq, Clone)]
 pub struct PowerOutage {
+    /// The area experiencing the power outage.
+    #[schema(example = "western-cape-stellenbosch")]
     pub area_name: String,
+
+    /// The stage of loadshedding
+    #[schema(example = 5)]
     pub stage: u8,
+
+    /// The datetime when loadshedding will start
+    #[schema(example = "2023-06-01T20:00:00+02:00")]
     pub start: DateTime<FixedOffset>,
+
+    /// The datetime when loadshedding will end. Note the spelling is `finsh`, not `finish` so that
+    /// it lines up with `start`.
+    #[schema(example = "2023-06-01T22:00:00+02:00")]
     pub finsh: DateTime<FixedOffset>,
+
+    /// The source of information for this power outage. Useful for pointing fingers ;).
+    #[schema(example = "https://twitter.com/Eskom_SA/status/1664250326818365440")]
     pub source: String,
 }
 
-// TODO require that result is Ord
-#[derive(Deserialize, Serialize)]
+/// A generic search result that gets returned after you searched for something.
+///
+/// It simply wraps the object you were looking for with a score for how well that object matched
+/// your search query. Higher numbers are better.
+#[derive(Deserialize, Serialize, Clone, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
-#[derive(Clone, Debug)]
 pub struct SearchResult<T> {
     /// How close a match the thing is to the search query. Higher is better.
+    #[schema(example = 100)]
     pub score: i64,
     /// The thing that's been found
+    #[schema(example = "my-needle")]
     pub result: T,
 }
 
