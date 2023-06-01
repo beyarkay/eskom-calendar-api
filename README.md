@@ -1,8 +1,6 @@
 <div align="center">
   <h1 alt="Eskom-calendar-api: loadshedding in your shell">
-    <a  href="https://github.com/beyarkay/eskom-calendar/releases/tag/latest">
-      <img src="imgs/header.png" alt="eskom-calendar-api: loadshedding in your shell">
-    </a>
+    <img src="https://github.com/beyarkay/eskom-calendar/blob/main/imgs/header.png" alt="eskom-calendar-api: loadshedding in your shell">
   </h1>
 
   <a href="https://github.com/beyarkay/eskom-calendar">
