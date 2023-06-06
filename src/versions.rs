@@ -10,6 +10,7 @@ use shuttle_runtime::tracing;
 use std::collections::HashSet;
 
 async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
+    tracing::info!("Getting machine_friendly.csv from GitHub");
     let url =
         "https://github.com/beyarkay/eskom-calendar/releases/download/latest/machine_friendly.csv";
     let text_data = reqwest::get(url)
@@ -19,6 +20,7 @@ async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
         .await
         .map_err(|_err| "Failed to get text of machine_friendly.csv")?;
 
+    tracing::info!("Parsing machine_friendly.csv");
     let mut reader = csv::Reader::from_reader(text_data.as_bytes());
     Ok(reader
         .deserialize::<PowerOutage>()
@@ -134,6 +136,8 @@ pub mod v0_0_1 {
 
         // Normalise the query
         let query = preprocess(&query);
+
+        // Get the machine friendly data
         tracing::info!("Fetching machine friendly");
         let machine_friendly = get_machine_friendly().await?;
 
@@ -172,6 +176,7 @@ pub mod v0_0_1 {
     #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
+        tracing::info!("Getting outages for {area_name}");
         let outages: Vec<PowerOutage> = get_machine_friendly()
             .await?
             .into_iter()
@@ -179,20 +184,24 @@ pub mod v0_0_1 {
             .collect();
 
         if outages.is_empty() {
+            tracing::info!("No outages found for {area_name}");
             return Err(format!("No areas found that match `{area_name}`"));
         }
 
+        tracing::info!("Returning outages for {area_name}");
         Ok(Json(outages))
     }
 
     #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/schedules/<area_name>")]
     pub async fn schedules(area_name: String) -> Result<Json<RecurringSchedule>, String> {
+        tracing::info!("Getting schedules for {area_name}");
         let url = format!( "https://raw.githubusercontent.com/beyarkay/eskom-calendar/main/generated/{area_name}.csv");
         let response = reqwest::get(url)
             .await
             .map_err(|_err| format!("Failed to get CSV file defining schedules for {area_name}"))?;
 
+        tracing::info!("Checking if GitHub request was successful");
         if !response.status().is_success() {
             return Err(format!(
                 "Failed to get CSV file from GitHub: {:?}",
@@ -204,6 +213,7 @@ pub mod v0_0_1 {
             format!("Failed to get text of the CSV file defining schedules for {area_name}")
         })?;
 
+        tracing::info!("Parsing schedule CSV as text");
         let mut reader = csv::Reader::from_reader(text_data.as_bytes());
         let headers = reader
             .headers()
@@ -230,6 +240,7 @@ pub mod v0_0_1 {
             return Err(format!("Couldn't parse headers {:?}", headers));
         }
 
+        tracing::info!("Returning parsed CSV as a RecurringSchedule");
         // TODO actually assign values for id, source, info, last_updated, valid_from, valid_until
         Ok(Json(RecurringSchedule {
             id: ScheduleId(0),
@@ -251,6 +262,7 @@ pub mod v0_0_1 {
     #[utoipa::path(context_path = "/v0.0.1")]
     #[get("/list_areas/<regex>")]
     pub async fn list_areas(regex: String) -> Result<Json<Vec<String>>, String> {
+        tracing::info!("Listing all areas matching the regex `{regex}`");
         let machine_friendly = get_machine_friendly().await?;
         let re =
             Regex::new(&regex).map_err(|e| format!("Error parsing '{regex}' as regex: {e:?}"))?;
@@ -263,8 +275,10 @@ pub mod v0_0_1 {
             .into_iter()
             .collect::<Vec<_>>();
 
+        tracing::info!("Sorting the areas");
         uniq_areas.sort();
 
+        tracing::info!("Returning the sorted areas");
         Ok(Json(uniq_areas))
     }
 }
