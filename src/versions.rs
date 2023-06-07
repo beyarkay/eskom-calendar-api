@@ -8,15 +8,22 @@ use regex::Regex;
 use rocket::serde::json::Json;
 use shuttle_runtime::tracing;
 use std::collections::HashSet;
+use tracing::Instrument;
 
 async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
-    tracing::info!("Getting machine_friendly.csv from GitHub");
+    let machine_friendly_span = tracing::info_span!("Getting machine friendly");
+    let _ = machine_friendly_span.enter();
+
+    let fetch_span = tracing::info_span!("Making GET request to GitHub");
+    let convert_span = tracing::info_span!("Converting GitHub reponse to text");
     let url =
         "https://github.com/beyarkay/eskom-calendar/releases/download/latest/machine_friendly.csv";
     let text_data = reqwest::get(url)
+        .instrument(fetch_span)
         .await
         .map_err(|_err| "Failed to get machine_friendly.csv that defines the outages")?
         .text()
+        .instrument(convert_span)
         .await
         .map_err(|_err| "Failed to get text of machine_friendly.csv")?;
 
@@ -65,6 +72,7 @@ pub mod latest {
     )]
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
+        panic!("shit");
         super::v0_0_1::outages(area_name).await
     }
 

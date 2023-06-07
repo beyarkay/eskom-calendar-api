@@ -4,6 +4,13 @@ use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime};
 use rocket::serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[serde(crate = "rocket::serde")]
+pub enum Errors {
+    /// Unfortunately there's gotta be a default catch-all error
+    Unspecified(String),
+}
+
 /// The unique ID of a schedule
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]

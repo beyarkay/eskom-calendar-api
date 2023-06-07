@@ -1,3 +1,4 @@
+#![allow(clippy::let_unit_value)] // required because of `fn all_options`
 #[macro_use]
 extern crate rocket;
 
@@ -16,6 +17,7 @@ mod structs;
 /// Catches all OPTION requests in order to get the CORS related Fairing triggered.
 /// https://stackoverflow.com/a/72702246/14555505
 #[options("/<_..>")]
+#[allow(dead_code)]
 fn all_options() {}
 
 /// An empty struct to trigger CORS
