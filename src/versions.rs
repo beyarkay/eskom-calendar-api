@@ -72,7 +72,6 @@ pub mod latest {
     )]
     #[get("/outages/<area_name>")]
     pub async fn outages(area_name: String) -> Result<Json<Vec<PowerOutage>>, String> {
-        panic!("shit");
         super::v0_0_1::outages(area_name).await
     }
 
