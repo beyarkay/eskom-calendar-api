@@ -2,10 +2,13 @@
 #[macro_use]
 extern crate rocket;
 
+#[cfg(test)]
+mod tests;
+
 use rocket::{
     fairing::{Fairing, Info, Kind},
     http::Header,
-    Request, Response,
+    Build, Request, Response, Rocket,
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -48,6 +51,12 @@ impl Fairing for Cors {
 
 #[shuttle_runtime::main]
 async fn rocket() -> shuttle_rocket::ShuttleRocket {
+    Ok(build_rocket().into())
+}
+
+/// This is separated from the shuttle_runtime::main function so that it can be tested without the
+/// shuttle infrastructure.
+fn build_rocket() -> Rocket<Build> {
     #[derive(OpenApi)]
     #[openapi(
         servers(
@@ -146,14 +155,12 @@ async fn rocket() -> shuttle_rocket::ShuttleRocket {
     )]
     struct ApiDoc;
 
-    let rocket = rocket::build()
+    rocket::build()
         .attach(Cors)
         .mount("/", latest::routes())
         .mount("/v0.0.1", v0_0_1::routes())
         .mount(
             "/",
             SwaggerUi::new("/<_..>").url("/api-docs/openapi.json", ApiDoc::openapi()),
-        );
-
-    Ok(rocket.into())
+        )
 }
