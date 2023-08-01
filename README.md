@@ -21,6 +21,9 @@
 
   <p>
     This is the backend for <a href="https://github.com/beyarkay/eskom-calendar">eskom-calendar</a>'s API, hosted by <a href="https://www.shuttle.rs/">shuttle.rs🚀</a>.
+  </p> 
+  <p>
+    See the uptime and live system status <a href="https://stats.uptimerobot.com/l9gAnCO16z">here</a>.
   </p>
 </div>
 
