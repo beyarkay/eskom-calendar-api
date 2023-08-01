@@ -129,11 +129,12 @@ fn build_rocket() -> Rocket<Build> {
         "
         ),
         paths(
+            latest::list_all_areas,
             latest::outages,
             latest::fuzzy_search,
             latest::schedules,
-            latest::list_all_areas,
             latest::list_areas,
+            latest::health_check,
         ),
         components(schemas(
             structs::Area,
@@ -141,6 +142,8 @@ fn build_rocket() -> Rocket<Build> {
             structs::ContiguousRegion,
             structs::Coords,
             structs::DistrictMunic,
+            structs::HealthCheck,
+            structs::HealthStatus,
             structs::LocalMunic,
             structs::MetroMunic,
             structs::Municipality,

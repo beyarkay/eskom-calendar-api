@@ -16,6 +16,31 @@ pub enum Errors {
 #[serde(crate = "rocket::serde")]
 pub struct ScheduleId(pub i64);
 
+/// Describes the health of the entire system. Right now it always returns healthy and doesn't do
+/// any deep checks, but in future this will be expanded.
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[serde(crate = "rocket::serde")]
+pub struct HealthCheck {
+    pub date_time: NaiveDateTime,
+    pub overall: HealthStatus,
+    pub api_hosting_service: HealthStatus,
+}
+
+/// The status of a system. Can be healthy, unhealthy, or dead, depending on how much of the system
+/// is responsive. If the system is not healthy, it can contain details about the issues.
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[serde(crate = "rocket::serde")]
+pub enum HealthStatus {
+    /// The system has no issues and everything is working normally
+    Healthy,
+    /// The system has some issues but some subsystems are okay. Optionally contains details about
+    /// the issues
+    Unhealthy(Option<String>),
+    /// The system has serious issues and is not working. Optionally contains details about
+    /// the issues
+    Dead(Option<String>),
+}
+
 /// A loadshedding schedule that repeats over some period.
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[serde(crate = "rocket::serde")]
