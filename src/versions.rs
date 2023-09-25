@@ -8,9 +8,8 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use regex::Regex;
 use rocket::serde::json::Json;
-use shuttle_runtime::tracing;
 use std::collections::HashSet;
-use tracing::Instrument;
+use tracing::{self, Instrument};
 
 async fn get_machine_friendly() -> Result<Vec<PowerOutage>, String> {
     let machine_friendly_span = tracing::info_span!("Getting machine friendly");

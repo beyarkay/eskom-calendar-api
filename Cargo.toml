@@ -12,10 +12,6 @@ chrono = "0.4.19"
 csv = "1.1"
 reqwest = { version = "0.11", features = ["json"] }
 rocket = { version = "0.5.0-rc.3", features = ["json"] }
-shuttle-rocket = { version = "0.17.0" }
-shuttle-runtime = { version = "0.17.0" }
-shuttle-shared-db = { version = "0.17.0", features = ["postgres"] }
-shuttle-aws-rds = { version = "0.17.0", features = ["postgres"] }
 sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "postgres"] }
 tokio = { version = "1.28.0", features = ["full"] }
 regex = "1.8.3"
@@ -25,3 +21,8 @@ serde_json = "1.0"
 uuid = { version = "1.3.3", features = ["v4"] }
 utoipa = { version = "3.4.3", features = ["yaml", "chrono", "rocket_extras"] }
 utoipa-swagger-ui = { version = "3.1.4", features = ["rocket"] }
+shuttle-rocket = "0.27.0"
+shuttle-runtime = "0.27.0"
+shuttle-shared-db = { version = "0.27.0", features = ["postgres"] }
+shuttle-aws-rds = { version = "0.27.0", features = ["postgres"] }
+tracing = "0.1.37"
